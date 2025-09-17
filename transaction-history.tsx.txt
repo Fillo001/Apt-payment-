@@ -1,0 +1,239 @@
+import { Sidebar } from "@/components/sidebar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ArrowUp, ArrowDown, ExternalLink, Search, Filter } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useWallet } from "@/hooks/use-wallet";
+import { useState } from "react";
+import type { Transaction } from "@shared/schema";
+
+export default function TransactionHistory() {
+  const { user } = useWallet();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
+    queryKey: ["/api/transactions", user?.id],
+    enabled: !!user?.id,
+  });
+
+  const filteredTransactions = transactions.filter(tx => 
+    tx.toAddress.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    tx.note?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    tx.currency.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "secondary";
+      case "pending":
+        return "default";
+      case "failed":
+        return "destructive";
+      default:
+        return "secondary";
+    }
+  };
+
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 8)}...${address.slice(-6)}`;
+  };
+
+  const formatAmount = (amount: string, currency: string) => {
+    const value = parseFloat(amount);
+    
+    return (
+      <div>
+        <p className="font-medium text-foreground">
+          ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {value.toFixed(2)} {currency}
+        </p>
+      </div>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Sidebar />
+        <div className="flex-1 lg:pl-64">
+          <main className="flex-1 overflow-y-auto">
+            <div className="p-4 lg:p-8">
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold text-foreground">Transaction History</h1>
+                <p className="text-muted-foreground mt-1">View all your payment transactions</p>
+              </div>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg animate-pulse">
+                        <div className="w-10 h-10 bg-muted rounded-lg"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-muted rounded w-48"></div>
+                          <div className="h-3 bg-muted rounded w-32"></div>
+                        </div>
+                        <div className="w-20 h-4 bg-muted rounded"></div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Sidebar />
+      
+      <div className="flex-1 lg:pl-64">
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-4 lg:p-8">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-foreground" data-testid="page-title">
+                Transaction History
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                View all your payment transactions
+              </p>
+            </div>
+
+            <Card data-testid="transaction-history-card">
+              <CardHeader>
+                <CardTitle>All Transactions</CardTitle>
+                <div className="flex items-center space-x-4">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search transactions..."
+                      className="pl-10"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      data-testid="input-search-transactions"
+                    />
+                  </div>
+                  <Button variant="outline" data-testid="button-filter">
+                    <Filter className="mr-2 h-4 w-4" />
+                    Filter
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {filteredTransactions.length === 0 ? (
+                  <div className="text-center py-12" data-testid="no-transactions">
+                    <ArrowUp className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">
+                      {searchTerm ? "No transactions found" : "No transactions yet"}
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {searchTerm 
+                        ? "Try adjusting your search terms" 
+                        : "Start by sending your first payment"
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date & Time</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Recipient</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Fee</TableHead>
+                          <TableHead>Transaction ID</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredTransactions.map((transaction, index) => (
+                          <TableRow 
+                            key={transaction.id} 
+                            className="hover:bg-muted/50 transition-colors"
+                            data-testid={`transaction-row-${index}`}
+                          >
+                            <TableCell data-testid={`transaction-date-${index}`}>
+                              <div>
+                                <p className="text-sm font-medium text-foreground">
+                                  {new Date(transaction.createdAt!).toLocaleDateString()}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(transaction.createdAt!).toLocaleTimeString()}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <div className="w-8 h-8 bg-destructive/10 rounded-lg flex items-center justify-center">
+                                  <ArrowUp className="text-destructive h-4 w-4" />
+                                </div>
+                                <span className="text-sm font-medium">Send</span>
+                              </div>
+                            </TableCell>
+                            <TableCell data-testid={`transaction-recipient-${index}`}>
+                              <div>
+                                <p className="font-medium text-foreground">
+                                  {formatAddress(transaction.toAddress)}
+                                </p>
+                                {transaction.note && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {transaction.note}
+                                  </p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell data-testid={`transaction-amount-${index}`}>
+                              {formatAmount(transaction.amount, transaction.currency)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={getStatusColor(transaction.status) as any}
+                                data-testid={`transaction-status-${index}`}
+                              >
+                                {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell data-testid={`transaction-fee-${index}`}>
+                              <span className="text-sm text-muted-foreground">
+                                ${parseFloat(transaction.fee || "0").toFixed(3)}
+                              </span>
+                            </TableCell>
+                            <TableCell data-testid={`transaction-hash-${index}`}>
+                              <span className="text-sm font-mono text-muted-foreground">
+                                {transaction.txHash ? formatAddress(transaction.txHash) : "Pending"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                data-testid={`button-view-transaction-${index}`}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

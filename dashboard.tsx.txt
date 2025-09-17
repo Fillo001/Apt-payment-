@@ -1,0 +1,136 @@
+import { Sidebar } from "@/components/sidebar";
+import { StatsCards } from "@/components/stats-cards";
+import { QuickSend } from "@/components/quick-send";
+import { ExchangeRates } from "@/components/exchange-rates";
+import { TransactionTable } from "@/components/transaction-table";
+import { FeeComparison } from "@/components/fee-comparison";
+import { AddressBookList } from "@/components/address-book-list";
+import { Card, CardContent } from "@/components/ui/card";
+import { Wallet, TrendingUp, ArrowUpDown } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useWallet } from "@/hooks/use-wallet";
+import type { WalletBalance } from "@shared/schema";
+
+const CURRENCY_INFO = {
+  APT: { name: "Aptos", symbol: "APT", color: "bg-blue-100 text-blue-600", price: 8.42 },
+  USDC: { name: "USD Coin", symbol: "USDC", color: "bg-blue-500 text-white", price: 1.00 },
+  USDT: { name: "Tether", symbol: "USDT", color: "bg-green-500 text-white", price: 1.00 }
+};
+
+export default function Dashboard() {
+  const { user } = useWallet();
+
+  const { data: balances = [] } = useQuery<WalletBalance[]>({
+    queryKey: ["/api/wallet-balances", user?.id],
+    enabled: !!user?.id,
+  });
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Sidebar />
+      
+      {/* Mobile Header */}
+      <div className="lg:hidden bg-card border-b border-border">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <ArrowUpDown className="text-primary-foreground h-4 w-4" />
+            </div>
+            <h1 className="text-xl font-bold text-foreground">AptosRemit</h1>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 lg:pl-64">
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-4 lg:p-8">
+            {/* Header */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-foreground" data-testid="page-title">
+                Dashboard
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Manage your global payments on Aptos
+              </p>
+            </div>
+
+            {/* Quick Stats Cards */}
+            <StatsCards />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Quick Send Section */}
+              <div className="lg:col-span-2">
+                <QuickSend />
+              </div>
+
+              {/* Wallet Balances & Exchange Rates */}
+              <div className="space-y-6">
+                {/* Wallet Balances */}
+                <Card data-testid="wallet-balances-card">
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold text-foreground mb-4">
+                      Wallet Balances
+                    </h3>
+                    <div className="space-y-4">
+                      {Object.entries(CURRENCY_INFO).map(([currency, info]) => {
+                        const balance = balances.find(b => b.currency === currency);
+                        const balanceAmount = balance ? parseFloat(balance.balance) : 0;
+                        const usdValue = balanceAmount * info.price;
+
+                        return (
+                          <div 
+                            key={currency} 
+                            className="flex items-center justify-between"
+                            data-testid={`balance-${currency.toLowerCase()}`}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${info.color}`}>
+                                <span className="font-semibold text-xs">{info.symbol}</span>
+                              </div>
+                              <div>
+                                <p className="font-medium text-foreground">{info.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  ${info.price.toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-foreground">
+                                {balanceAmount.toLocaleString(undefined, { 
+                                  minimumFractionDigits: 2, 
+                                  maximumFractionDigits: 2 
+                                })}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                ${usdValue.toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Live Exchange Rates */}
+                <ExchangeRates />
+              </div>
+            </div>
+
+            {/* Recent Transactions */}
+            <div className="mt-8">
+              <TransactionTable />
+            </div>
+
+            {/* Fee Comparison & Address Book */}
+            <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <FeeComparison />
+              <AddressBookList />
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

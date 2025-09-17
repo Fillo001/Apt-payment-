@@ -1,0 +1,89 @@
+import { Link, useLocation } from "wouter";
+import { cn } from "@/lib/utils";
+import { 
+  Zap, 
+  LayoutDashboard, 
+  Send, 
+  History, 
+  Users, 
+  Calculator, 
+  Settings,
+  Trophy,
+  Wallet
+} from "lucide-react";
+import { WalletConnection } from "./wallet-connection";
+
+const navigation = [
+  { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Send Money", href: "/send", icon: Send },
+  { name: "Transaction History", href: "/history", icon: History },
+  { name: "Address Book", href: "/contacts", icon: Users },
+  { name: "Fee Calculator", href: "/calculator", icon: Calculator },
+  { name: "Settings", href: "/settings", icon: Settings },
+];
+
+export function Sidebar() {
+  const [location] = useLocation();
+
+  return (
+    <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
+      <div className="flex flex-col flex-grow bg-card border-r border-border overflow-y-auto">
+        {/* Logo */}
+        <div className="flex items-center flex-shrink-0 px-6 py-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+              <Zap className="text-primary-foreground h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">AptosRemit</h1>
+              <p className="text-xs text-muted-foreground">Global Payments</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Wallet Connection Status */}
+        <div className="px-6 mb-6">
+          <WalletConnection />
+        </div>
+
+        {/* Navigation Menu */}
+        <nav className="flex-1 px-4 space-y-1" data-testid="sidebar-navigation">
+          {navigation.map((item) => {
+            const Icon = item.icon;
+            const isActive = location === item.href;
+            
+            return (
+              <Link key={item.name} href={item.href}>
+                <a
+                  className={cn(
+                    "group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                  data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <Icon className="mr-3 h-5 w-5" />
+                  {item.name}
+                </a>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Bottom Section */}
+        <div className="px-4 py-6 border-t border-border">
+          <div className="bg-accent/10 rounded-lg p-4">
+            <div className="flex items-center space-x-3">
+              <Trophy className="text-accent h-5 w-5" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Built for CTRL+MOVE</p>
+                <p className="text-xs text-muted-foreground">Aptos Hackathon 2025</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

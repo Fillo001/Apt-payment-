@@ -1,0 +1,64 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+
+export function FeeComparison() {
+  const fees = [
+    {
+      provider: "AptosRemit",
+      fee: 0.002,
+      color: "bg-secondary",
+      percentage: 0.01
+    },
+    {
+      provider: "Traditional Bank", 
+      fee: 25.00,
+      color: "bg-destructive",
+      percentage: 100
+    },
+    {
+      provider: "Western Union",
+      fee: 15.50,
+      color: "bg-accent", 
+      percentage: 62
+    }
+  ];
+
+  const savings = ((25.00 - 0.002) / 25.00 * 100).toFixed(1);
+
+  return (
+    <Card data-testid="fee-comparison-card">
+      <CardHeader>
+        <CardTitle>Fee Comparison</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {fees.map((fee, index) => (
+            <div key={fee.provider} className="bg-muted rounded-lg p-4" data-testid={`fee-provider-${index}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-foreground" data-testid={`fee-provider-name-${index}`}>
+                  {fee.provider}
+                </span>
+                <span 
+                  className={`text-lg font-bold ${fee.provider === 'AptosRemit' ? 'text-secondary' : 'text-destructive'}`}
+                  data-testid={`fee-amount-${index}`}
+                >
+                  ${fee.fee.toFixed(3)}
+                </span>
+              </div>
+              <Progress 
+                value={fee.percentage} 
+                className="h-2"
+                data-testid={`fee-progress-${index}`}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 p-4 bg-secondary/10 rounded-lg">
+          <p className="text-sm text-secondary font-medium" data-testid="fee-savings">
+            You save {savings}% on fees with AptosRemit!
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

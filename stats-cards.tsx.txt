@@ -1,0 +1,94 @@
+import { Card, CardContent } from "@/components/ui/card";
+import { Wallet, TrendingUp, ArrowUpDown, PiggyBank } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useWallet } from "@/hooks/use-wallet";
+import type { WalletBalance, Transaction } from "@shared/schema";
+
+export function StatsCards() {
+  const { user } = useWallet();
+
+  const { data: balances = [] } = useQuery<WalletBalance[]>({
+    queryKey: ["/api/wallet-balances", user?.id],
+    enabled: !!user?.id,
+  });
+
+  const { data: transactions = [] } = useQuery<Transaction[]>({
+    queryKey: ["/api/transactions", user?.id],
+    enabled: !!user?.id,
+  });
+
+  // Calculate stats
+  const totalBalance = balances.reduce((sum, balance) => {
+    return sum + parseFloat(balance.balance) * 8.42; // Mock APT price for calculation
+  }, 0);
+
+  const currentMonth = new Date().getMonth();
+  const monthlyTransactions = transactions.filter(tx => {
+    const txDate = new Date(tx.createdAt!);
+    return txDate.getMonth() === currentMonth;
+  });
+
+  const monthlyVolume = monthlyTransactions.reduce((sum, tx) => {
+    return sum + parseFloat(tx.amount);
+  }, 0);
+
+  const feesSaved = transactions.length * 24.998; // Traditional fee - Aptos fee
+
+  const stats = [
+    {
+      title: "Total Balance",
+      value: `$${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: Wallet,
+      color: "text-primary",
+      bgColor: "bg-primary/10"
+    },
+    {
+      title: "This Month",
+      value: `$${monthlyVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: TrendingUp,
+      color: "text-secondary",
+      bgColor: "bg-secondary/10"
+    },
+    {
+      title: "Transactions",
+      value: transactions.length.toString(),
+      icon: ArrowUpDown,
+      color: "text-accent",
+      bgColor: "bg-accent/10"
+    },
+    {
+      title: "Saved in Fees",
+      value: `$${feesSaved.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: PiggyBank,
+      color: "text-secondary",
+      bgColor: "bg-secondary/10"
+    }
+  ];
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {stats.map((stat, index) => {
+        const Icon = stat.icon;
+        return (
+          <Card key={index} className="hover:shadow-lg transition-shadow" data-testid={`stat-card-${index}`}>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground font-medium" data-testid={`stat-title-${index}`}>
+                    {stat.title}
+                  </p>
+                  <p className="text-2xl font-bold text-foreground" data-testid={`stat-value-${index}`}>
+                    {stat.value}
+                  </p>
+                </div>
+                <div className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}>
+                  <Icon className={`${stat.color} h-6 w-6`} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}

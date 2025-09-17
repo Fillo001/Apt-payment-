@@ -1,0 +1,193 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ArrowRight, ArrowUp, ArrowDown, Clock, ExternalLink } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useWallet } from "@/hooks/use-wallet";
+import type { Transaction } from "@shared/schema";
+import { Link } from "wouter";
+
+export function TransactionTable() {
+  const { user } = useWallet();
+
+  const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
+    queryKey: ["/api/transactions", user?.id],
+    enabled: !!user?.id,
+  });
+
+  const recentTransactions = transactions.slice(0, 5);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "secondary";
+      case "pending":
+        return "default";
+      case "failed":
+        return "destructive";
+      default:
+        return "secondary";
+    }
+  };
+
+  const getTransactionIcon = (type: "send" | "receive") => {
+    return type === "send" ? 
+      <ArrowUp className="text-destructive h-5 w-5" /> : 
+      <ArrowDown className="text-secondary h-5 w-5" />;
+  };
+
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const formatAmount = (amount: string, currency: string, type: "send" | "receive") => {
+    const value = parseFloat(amount);
+    const sign = type === "send" ? "-" : "+";
+    const color = type === "send" ? "text-foreground" : "text-secondary";
+    
+    return (
+      <div>
+        <p className={`font-medium ${color}`}>
+          {sign}${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {value.toFixed(2)} {currency}
+        </p>
+      </div>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <Card data-testid="transaction-table-loading">
+        <CardHeader>
+          <CardTitle>Recent Transactions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+                <div className="w-10 h-10 bg-muted rounded-lg animate-pulse"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-muted rounded w-32 animate-pulse"></div>
+                  <div className="h-3 bg-muted rounded w-24 animate-pulse"></div>
+                </div>
+                <div className="w-20 h-4 bg-muted rounded animate-pulse"></div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (recentTransactions.length === 0) {
+    return (
+      <Card data-testid="transaction-table-empty">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            Recent Transactions
+            <Link href="/history">
+              <Button variant="ghost" size="sm" data-testid="button-view-all-transactions">
+                View All <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No transactions yet</h3>
+            <p className="text-muted-foreground">Start by sending your first payment</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card data-testid="transaction-table-card">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          Recent Transactions
+          <Link href="/history">
+            <Button variant="ghost" size="sm" data-testid="button-view-all-transactions">
+              View All <ArrowRight className="ml-1 h-4 w-4" />
+            </Button>
+          </Link>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Transaction</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentTransactions.map((transaction, index) => (
+                <TableRow 
+                  key={transaction.id} 
+                  className="hover:bg-muted/50 transition-colors"
+                  data-testid={`transaction-row-${index}`}
+                >
+                  <TableCell>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-destructive/10 rounded-lg flex items-center justify-center">
+                        {getTransactionIcon("send")}
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground" data-testid={`transaction-description-${index}`}>
+                          Send to {formatAddress(transaction.toAddress)}
+                        </p>
+                        <p className="text-sm text-muted-foreground" data-testid={`transaction-address-${index}`}>
+                          {formatAddress(transaction.toAddress)}
+                        </p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell data-testid={`transaction-amount-${index}`}>
+                    {formatAmount(transaction.amount, transaction.currency, "send")}
+                  </TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={getStatusColor(transaction.status) as any}
+                      data-testid={`transaction-status-${index}`}
+                    >
+                      {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell data-testid={`transaction-date-${index}`}>
+                    <div>
+                      <p className="text-sm text-foreground">
+                        {new Date(transaction.createdAt!).toLocaleDateString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(transaction.createdAt!).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      data-testid={`button-view-transaction-${index}`}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

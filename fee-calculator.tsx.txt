@@ -1,0 +1,262 @@
+import { Sidebar } from "@/components/sidebar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { useState } from "react";
+import { Calculator, ArrowRight } from "lucide-react";
+
+interface FeeComparison {
+  provider: string;
+  fee: number;
+  percentage: number;
+  color: string;
+  description: string;
+}
+
+export default function FeeCalculator() {
+  const [amount, setAmount] = useState("1000");
+  const [fromCurrency, setFromCurrency] = useState("USD");
+  const [toCurrency, setToCurrency] = useState("EUR");
+
+  const calculateFees = (amount: number): FeeComparison[] => {
+    return [
+      {
+        provider: "AptosRemit",
+        fee: 0.002,
+        percentage: 0.0002,
+        color: "bg-secondary",
+        description: "Aptos network fee only"
+      },
+      {
+        provider: "Traditional Bank",
+        fee: Math.max(25, amount * 0.025),
+        percentage: Math.max(2.5, (25 / amount) * 100),
+        color: "bg-destructive",
+        description: "Wire transfer + currency conversion"
+      },
+      {
+        provider: "Western Union",
+        fee: Math.max(15, amount * 0.015),
+        percentage: Math.max(1.5, (15 / amount) * 100),
+        color: "bg-accent",
+        description: "Money transfer service"
+      },
+      {
+        provider: "PayPal",
+        fee: Math.max(5, amount * 0.035),
+        percentage: Math.max(0.5, (5 / amount) * 100),
+        color: "bg-blue-500",
+        description: "International transfer"
+      }
+    ];
+  };
+
+  const amountNum = parseFloat(amount) || 0;
+  const feeComparisons = calculateFees(amountNum);
+  const aptosRemitFee = feeComparisons[0].fee;
+  const traditionalBankFee = feeComparisons[1].fee;
+  const savings = traditionalBankFee - aptosRemitFee;
+  const savingsPercentage = ((savings / traditionalBankFee) * 100).toFixed(1);
+
+  const maxFee = Math.max(...feeComparisons.map(f => f.fee));
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Sidebar />
+      
+      <div className="flex-1 lg:pl-64">
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-4 lg:p-8">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-foreground" data-testid="page-title">
+                Fee Calculator
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Compare fees across different payment providers
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <Card data-testid="fee-calculator-form">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Calculator className="mr-2 h-5 w-5" />
+                    Calculate Fees
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <Label htmlFor="amount">Amount to Send</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="Enter amount"
+                      data-testid="input-amount"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="fromCurrency">From</Label>
+                      <Select value={fromCurrency} onValueChange={setFromCurrency}>
+                        <SelectTrigger data-testid="select-from-currency">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USD">USD - US Dollar</SelectItem>
+                          <SelectItem value="EUR">EUR - Euro</SelectItem>
+                          <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                          <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+                          <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="toCurrency">To</Label>
+                      <Select value={toCurrency} onValueChange={setToCurrency}>
+                        <SelectTrigger data-testid="select-to-currency">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="EUR">EUR - Euro</SelectItem>
+                          <SelectItem value="USD">USD - US Dollar</SelectItem>
+                          <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                          <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+                          <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="bg-secondary/10 rounded-lg p-4">
+                    <h3 className="font-semibold text-foreground mb-3">Summary</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Amount to send</span>
+                        <span className="font-medium" data-testid="summary-amount">
+                          {fromCurrency} {amountNum.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">AptosRemit fee</span>
+                        <span className="font-medium text-secondary" data-testid="summary-aptos-fee">
+                          ${aptosRemitFee.toFixed(3)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">You save vs. banks</span>
+                        <span className="font-bold text-secondary" data-testid="summary-savings">
+                          ${savings.toFixed(2)} ({savingsPercentage}%)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card data-testid="fee-comparison-results">
+                <CardHeader>
+                  <CardTitle>Fee Comparison Results</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {feeComparisons.map((comparison, index) => (
+                      <div key={comparison.provider} data-testid={`comparison-${index}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <h4 className="font-semibold text-foreground" data-testid={`provider-name-${index}`}>
+                              {comparison.provider}
+                            </h4>
+                            <p className="text-sm text-muted-foreground" data-testid={`provider-description-${index}`}>
+                              {comparison.description}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p 
+                              className={`text-lg font-bold ${
+                                comparison.provider === 'AptosRemit' ? 'text-secondary' : 'text-destructive'
+                              }`}
+                              data-testid={`provider-fee-${index}`}
+                            >
+                              ${comparison.fee.toFixed(3)}
+                            </p>
+                            <p className="text-sm text-muted-foreground" data-testid={`provider-percentage-${index}`}>
+                              {comparison.percentage.toFixed(2)}%
+                            </p>
+                          </div>
+                        </div>
+                        <Progress 
+                          value={(comparison.fee / maxFee) * 100} 
+                          className="h-3"
+                          data-testid={`provider-progress-${index}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 p-4 bg-primary/10 rounded-lg">
+                    <h3 className="font-semibold text-primary mb-2">Why Choose AptosRemit?</h3>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• Minimal network fees on Aptos blockchain</li>
+                      <li>• Fast settlement (usually under 5 seconds)</li>
+                      <li>• No hidden charges or markup on exchange rates</li>
+                      <li>• 24/7 availability with global reach</li>
+                      <li>• Transparent and secure transactions</li>
+                    </ul>
+                  </div>
+
+                  <Button className="w-full mt-4" size="lg" data-testid="button-start-transfer">
+                    Start Transfer
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Historical Savings */}
+            <Card className="mt-8" data-testid="historical-savings-card">
+              <CardHeader>
+                <CardTitle>Potential Annual Savings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {[
+                    { frequency: "Monthly", multiplier: 12, description: "1 transfer per month" },
+                    { frequency: "Weekly", multiplier: 52, description: "1 transfer per week" },
+                    { frequency: "Daily", multiplier: 365, description: "1 transfer per day" }
+                  ].map((scenario, index) => {
+                    const annualSavings = savings * scenario.multiplier;
+                    
+                    return (
+                      <div 
+                        key={scenario.frequency} 
+                        className="text-center p-4 bg-muted rounded-lg"
+                        data-testid={`savings-scenario-${index}`}
+                      >
+                        <h4 className="font-semibold text-foreground mb-1" data-testid={`scenario-frequency-${index}`}>
+                          {scenario.frequency}
+                        </h4>
+                        <p className="text-xs text-muted-foreground mb-2" data-testid={`scenario-description-${index}`}>
+                          {scenario.description}
+                        </p>
+                        <p className="text-2xl font-bold text-secondary" data-testid={`scenario-savings-${index}`}>
+                          ${annualSavings.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground">saved annually</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
